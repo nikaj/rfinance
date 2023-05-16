@@ -9,12 +9,12 @@ output:
       highlightStyle: github
       highlightLines: true
       titleSlideClass: ["left", "middle", "inverse"]
-    seal: true
   html_document: default
 bibliography: references.bib
 suppress-bibliography: false
 ---
-```{css, echo = FALSE, include = FALSE}
+
+```{css, echo = FALSE}
 .tiny {
   font-size: 75%;
 }
@@ -49,6 +49,7 @@ suppress-bibliography: false
   float: right;
   width: 41%;
 }
+
 ```
 
 # Background and Motivation
@@ -66,7 +67,7 @@ suppress-bibliography: false
 
 .pull-right-small[
 ```{r vizmeme,fig.height = 2, out.width="95%", echo=FALSE}
-knitr::include_graphics("meme.jpg")
+knitr::include_graphics("meme.png")
 ```
 ]
 ---
@@ -116,7 +117,6 @@ ggplot(aes(x = dt, y = apps)) +
 
 ---
 #  .small[Exploring the Data: Application Volume by Attribute]
-
 We see similar patterns in the individual time series for seasonality and mean shifts, but differences in the point anomaly spikes
 
 .center[
