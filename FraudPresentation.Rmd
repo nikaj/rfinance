@@ -4,7 +4,7 @@ author: "Weronika (Nika) Jusczak, Staff Fraud & Risk Analyst at Intuit"
 output:
   xaringan::moon_reader:
     lib_dir: libs
-    css: [default, metropolis,my-theme.css]
+    css: [default, metropolis]
     nature:
       highlightStyle: github
       highlightLines: true
@@ -14,6 +14,42 @@ output:
 bibliography: references.bib
 suppress-bibliography: false
 ---
+```{css, echo = FALSE, include = FALSE}
+.tiny {
+  font-size: 75%;
+}
+
+.small {
+  font-size: 85%;
+}
+
+.med {
+  font-size: 110%;
+}
+
+.large {
+  font-size: 125%;
+}
+
+.larger {
+  font-size: 140%;
+}
+
+/* Code line in both boxes */ 
+.remark-code * {
+ background: #f0f0f0;
+}
+
+.pull-left-big {
+  float: left;
+  width: 52%;
+}
+
+.pull-right-small {
+  float: right;
+  width: 41%;
+}
+```
 
 # Background and Motivation
 .large[**Goal:** Detect Fraud in Financial Services Applications over time to detect and prevent fraud before a customer even transacts and losses are incurred
