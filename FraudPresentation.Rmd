@@ -4,46 +4,38 @@ author: "Weronika (Nika) Jusczak, Staff Fraud & Risk Analyst at Intuit"
 output:
   xaringan::moon_reader:
     lib_dir: libs
-    css: [default, metropolis]
+    css: [default, metropolis,my-theme.css]
     nature:
       highlightStyle: github
       highlightLines: true
-  html_document: default
-  pdf_document: default
-  word_document: default
+      titleSlideClass: ["left", "middle", "inverse"]
+    seal: true
 bibliography: references.bib
+suppress-bibliography: false
 ---
 
-```{css, echo=FALSE}
-.tiny {
-  font-size: 75%;
-}
+# Background and Motivation
+.large[**Goal:** Detect Fraud in Financial Services Applications over time to detect and prevent fraud before a customer even transacts and losses are incurred
+]
 
-.large {
-  font-size: 125%;
-}
+.pull-left-big[
+.med[
+- E-Commerse fraud has been growing since the pandemic, with a reported **$41 Billion in losses for 2022** @Baluch2023Feb.
 
-/* Code line in both boxes */ 
-.remark-code * {
- background: #f0f0f0;
-}
+- Finding new ways to identify and monitor fraudulent behavior is critical in mitigating losses
 
+- What statistical methods can differentiate fraud events from other time series anomalies and behaviors?
+]]
+
+.pull-right-small[
+```{r vizmeme,fig.height = 2, out.width="95%", echo=FALSE}
+knitr::include_graphics("meme.jpg")
 ```
-
-# Research Question
-**Topic**:   Detecting Fraud in Financial Services Applications over time
-
-**Question**:  What statistical methods can differentiate fraud events from other time series anomalies and behaviors?
-
-**Motivation**.  
-As a leader in Risk Analytics at Intuit, finding new ways to identify and monitor fraudulent behavior is critical in mitigating losses. We want to be able to not only stop fraudulent transactions and activity, but detect and prevent fraud before a customer even transacts and losses are incurred.
-
-E-Commerse fraud has been growing since the pandemic, with a reported $41 Billion in losses for 2022, and a projected $48 Billion in losses for 2023. @Baluch2023Feb.
-
+]
 ---
-# Getting Data. 
+# The Data 
 
-Here is a sample of the kind of data we may (or may not) work with at Intuit.
+.center[.med[Here is a sample of the kind of data we may (or may not) work with at Intuit:]]
 
 ```{r packages, echo = FALSE, message = FALSE}
 if (!require("pacman")) install.packages("pacman")
@@ -53,8 +45,8 @@ if (!require("pacman")) install.packages("pacman")
 #devtools::install_github("business-science/anomalize")
 #devtools::install_github("twitter/BreakoutDetection")
 pacman::p_load(devtools,anomalize,timetk,plotly,formattable,
-               lubridate,gghighlight,tidyquant,IntervalSurgeon,remotes,
-               shiny,DT,shinydashboard,sparklyr,tidyr,BreakoutDetection,
+               lubridate,gghighlight,tidyquant,IntervalSurgeon,
+               shiny,DT,tidyr,BreakoutDetection,
                tidyverse,zoo,lifecycle,tibbletime,tsfeatures,feasts,
                roll,gridExtra,cowplot,knitr,xts,xaringan)
 ```
@@ -70,22 +62,28 @@ print(knitr::kable(head(df),format = 'html'))
 ```
 
 ---
-#  Exploratory Data Analysis
-.pull-left[
-When plotting application volume over time, we see a clear weekly seasonal component, shifts in the mean over larger spans of time, as well as point anomalies.
+#  .small[Exploring the Data: Aggregated Application Volume]
+- When plotting application volume over time, we see a clear **weekly seasonal component**, **shifts in the mean** over larger spans of time, as well as **point anomalies**.
+- Total application volume consists of daily aggregated applications for Product A and Product B across all Industries
 
-Total application volume consists of daily aggregated applications for Product A and Product B across all Industries. If there is a vulnerability for fraud, will it appear in the aggregate or individual time series? We see similar patterns in the individual time series for seasonality and mean shifts, but differences in the point anomaly spikes. 
-]
+.center[
+.med[If there is a vulnerability for fraud, will it appear in the aggregate or individual time series?]
 
-.pull-right[
-```{r fig,fig.height = 2, echo=FALSE,message=FALSE}
+```{r fig,fig.height = 3, fig.width = 8.5, echo=FALSE,message=FALSE}
 df %>% dplyr::group_by(dt) %>% dplyr::summarise(apps = sum(apps),.groups = 'drop') %>%
 ggplot(aes(x = dt, y = apps)) +
     geom_line(col = "darkslategrey") +
     theme_minimal() + xlab("") + ylab("") + labs(title = "Total Application Volume")
 ```
+]
 
-```{r fig2,fig.height = 4, fig.width = 10, echo=FALSE,message = FALSE}
+---
+#  .small[Exploring the Data: Application Volume by Attribute]
+
+We see similar patterns in the individual time series for seasonality and mean shifts, but differences in the point anomaly spikes
+
+.center[
+```{r fig2,fig.height = 2.5, fig.width = 10, echo=FALSE,message = FALSE}
 #p1 <- 
 df %>% dplyr::group_by(dt,product) %>% dplyr::summarise(apps = sum(apps),.groups = 'drop') %>% 
   ggplot(aes(x = dt, y = apps)) +
@@ -116,21 +114,26 @@ df %>% dplyr::group_by(dt,product) %>% dplyr::summarise(apps = sum(apps),.groups
 
 ---
 # Methodology
-*high level explanation of methodology
+Use anomalize package to decompose time series and identify outliers on remainder
+
+1. Decompose time series into Trend, Seasonality, Remainder
+  + STL: Seasonal Decomposition of Time Series by Loess
+  
+2. Identify Outliers in the Remainder
+  + GESD: Generalized Extreme Studentized Deviate Test
+  
+Iterate over individual attributes: use purrr to apply anomaly detection to the unaggregated data set
 
 ---
-# Decomposition Methods
-
-Since we observed season and trend in the dataset, the next step is to determine whether to use additive or multiplicative decomposition. Additive decomposition means the time series is a sum of it's components, while multiplicative implies it is a product of it's components. An additive model produces better results when the seasonal variation is relatively constant, whereas a multiplicative model is more useful when the seasonal variation increases over time. 
-
-STL decomposition uses LOESS to perform smoothing on the time series in 2 loops. In the inner loop, the seasonal component is calculated and removed, then the trend component is found. The outer loop minimizes the effect of outliers. The remainder gives is found by subtracting the the seasonal and trend components. @BibEntry2016Aug
-
-For the application to fraudulent activity, we are interested in the remainder.
+# Time Series Decomposition
+STL decomposition: uses LOESS to perform smoothing on the time series in 2 loops
+- Inner Loop - seasonal component calculated and removed, trend component is found
+- Outer Loop - minimizes the effect of outliers
+- Remainder is found by subtracting seasonal and trend components
+- For the application to fraudulent activity, we are interested in the remainder
 
 ---
-# STL Decomposition
-The seasonality of applications is weekly, most application activity occurs on weekdays than weekends. Usually if a seasonal pattern exists, we see an oscillating wave pattern. In this case, we chose a 7 day period and a periodic window to find the seasonality component. The periodic window was chosen because the same seasonal pattern repeats across the entire time span of the data set.  
-
+# Applying STL Decomposition
 ```{r td,message=FALSE,warning=FALSE}
 # grouping data as sum of applications by day
 df_grp <- df %>% dplyr::group_by(dt) %>% 
@@ -138,37 +141,59 @@ df_grp <- df %>% dplyr::group_by(dt) %>%
 # decomposing data
 td <- df_grp %>% time_decompose(apps, method = "stl")
 ```
-.pull-left[
-```{r tdp,message=FALSE,warning=FALSE,echo = FALSE}
-knitr::kable(head(td)) %>%
-  kableExtra::kable_styling(font_size = 7)
-```
-]
 
-.pull-right[
-```{r td_plot,fig.height = 3,message = FALSE,warning=FALSE,echo=FALSE}
+.pull-left-big[
+```{r td_plot,fig.height=5,message = FALSE,warning=FALSE,echo=FALSE}
 df_grp %>% as_tsibble() %>% 
   model(STL(apps ~ season(window = "periodic", period = '7 days') + trend(window= 90.5), robust = TRUE)) %>%   
   components() %>% autoplot()
 ```
 ]
+.pull-right-small[
+<br>
+```{r tdp,message=FALSE,out.width="110%",warning=FALSE,echo = FALSE}
+knitr::kable(head(td)) %>%
+  kableExtra::kable_styling(font_size = 11)
+```
+]
+
+---
+# STL Observations
+- Usually if a seasonal pattern exists, we see an oscillating wave pattern
+- Seasonality of applications is weekly, most application activity occurs on weekdays than weekend
+- We chose a 7 day period and a periodic window to find the seasonality component. The periodic window was chosen because the same seasonal pattern repeats across the entire time span of the data set.  
+
+.center[
+```{r ,message = FALSE,fig.height = 4.8, warning=FALSE,echo=FALSE}
+weekDays <- c( "F", "Sa","Su", "M", "Tu","W", "Th")
+library(stlplus)
+df_grp <- df %>% dplyr::group_by(dt) %>% 
+  dplyr::summarise(apps = sum(apps),.groups = 'drop') %>% as_tbl_time(dt)
+# decomposing data
+td <- df_grp %>% time_decompose(apps, method = "stl")
+stlDaily <- stlplus(df_grp$apps,t=df_grp$dt,
+                    n.p=7, s.window=25,
+                    sub.labels=weekDays, sub.start=1)
+
+plot_cycle(stlDaily,ylab="Weekly Seasonality")
+```
+]
 ---
 # STL Decomposition by Attribute
-When we look at the time series decompositions for products A and B separately,the seasonal and trend components have similar shapes as the aggregate, but the noise we see in the remainder closely mirroring the noise in the aggregate. 
-
-Most fraudulent activity at the application level is a product of bots creating several applications with the intent to defraud the company or buyer. We want to find the clusters within a time series to find the attributes that can tell us the exact products, industries, etc. the fraudulent applications are targeting. By taking out seasonal and trend components, we can compare the noise in the remainder to the aggregate to target high-risk fraud attacks. 
-
 .pull-left[
-```{r td_plot2,fig.height = 3,echo=FALSE,message = FALSE}
+- Seasonal and trend components have similar shapes as the aggregate, the noise in the remainder closely mirrors the noise in the aggregate
+- Most fraudulent activity at the application level is a product of bots creating several applications with the intent to defraud the company or buyer. We want to find the exact products, industries, etc fraudsters are targeting. 
+- By taking out seasonal and trend components, we can compare the noise in the remainder to the aggregate to target high-risk fraud attacks. 
+]
+.pull-right[
+```{r td_plot2,fig.height = 4,echo=FALSE,message = FALSE}
 df %>% dplyr::group_by(dt,product) %>% dplyr::summarise(apps = sum(apps),.groups = 'drop') %>%
    as_tbl_time(dt)  %>% filter(product == 'A') %>% select(dt,apps) %>% as_tsibble() %>% 
   model(STL(apps ~ season(window = "periodic", period = '7 days') + trend(window= 90.5), robust = TRUE)) %>%   
   components() %>% autoplot() + labs(title="STL Decomposition: Product A")
 ```
-]
 
-.pull-right[
-```{r td_plot22,fig.height = 3,echo=FALSE,message = FALSE}
+```{r td_plot22,fig.height = 4,echo=FALSE,message = FALSE}
 df %>% dplyr::group_by(dt,product) %>% dplyr::summarise(apps = sum(apps),.groups = 'drop') %>%
    as_tbl_time(dt)  %>% filter(product == 'B') %>% select(dt,apps) %>% as_tsibble() %>% 
   model(STL(apps ~ season(window = "periodic", period = '7 days') + trend(window= 90.5), robust = TRUE)) %>%   
@@ -177,18 +202,18 @@ df %>% dplyr::group_by(dt,product) %>% dplyr::summarise(apps = sum(apps),.groups
 ]
 ---
 # Identifying Outliers in the STL Remainder
-Now that we've decomposed the time series, we want to detect the outliers. To do this, we chose to use the GESD Method.
-
-The GESD Method (Generlized Extreme Studentized Deviate Test) progressively eliminates outliers using a Student's T-Test comparing the test statistic to a critical value. Each time an outlier is removed, the test statistic is updated. Once test statistic drops below the critical value, all outliers are considered removed. (from anomalize documentation) @Rosner1983May
+- The GESD Method (Generlized Extreme Studentized Deviate Test) progressively eliminates outliers using a Student's T-Test comparing the test statistic to a critical value
+- Each time an outlier is removed, the test statistic is updated. Once test statistic drops below the critical value, all outliers are considered removed. (from anomalize documentation) @Rosner1983May
 
 ```{r anom,message = FALSE,warning = FALSE}
 a <- td %>% anomalize(remainder, method = "gesd") 
 df_anom <- a %>% time_recompose()
-
-knitr::kable(head(df_anom)) %>%
-  kableExtra::kable_styling(font_size = 7)
 ```
 
+```{r anom_p,message = FALSE,warning = FALSE,echo = FALSE}
+knitr::kable(head(df_anom)) %>%
+  kableExtra::kable_styling(font_size = 10)
+```
 
 ```{r anom2,echo=FALSE,message=FALSE,warning = FALSE}
 fcn_anom <- function(dat){
@@ -215,7 +240,8 @@ prod_c <- fcn_anom(dat3)
 # Visualizing Outliers
 When we plot the application volume series with the outliers and limits, at first glance it looks like there 2 distinct time series in each plot... this is a result of the weekly seasonality we observed when decomposing the series.
 
-```{r anomp,fig.height = 4.5,fig.width=8,echo=FALSE,message = FALSE,warning = FALSE}
+.center[
+```{r anomp,fig.width = 10, fig.height = 6.5,echo=FALSE,message = FALSE,warning = FALSE}
 figp1 <- plot_ly(df_anom, type = 'scatter', mode = "markers+lines", colors = c(alpha("grey",.01),"red2")) %>%
     
     add_trace(x = ~dt, y = ~observed, mode = "markers", color = ~anomaly,alpha = .7,
@@ -323,7 +349,7 @@ fig <- fig %>%layout(annotations = annotations)
 #options(warn = -1)
 fig
 ```
-
+]
 ---
 # Closer Look...
 
@@ -520,13 +546,18 @@ ff4 <- plot_ly(df_anomp3, type = 'scatter', mode = "markers+lines", colors = c(a
 ```
 ---
 # Findings and Results
-We applied this method at scale, iterating across dozens of attributes, and deployed an R Shiny interactive dashboard hosted in Databricks for stakeholders within risk to monitor and quickly identify and target fraudulent behavior.
+.small[
+- Applied this method at scale, iterating across dozens of attributes
+- Deployed an R Shiny interactive dashboard hosted in Databricks
+- Included tabs with insights into the trend and seasonal components, linking fraud data to marketing and customer growth data to explain large shifts in mean, and differentiate those from fraud anomalies
+- The simplicity of this method makes it easy to explain and share, but there are opportunities to enhance it even further...
+]
 
-We also included tabs with insights into the trend and seasonal components, linking fraud data to marketing and customer growth data to explain large shifts in mean, and differentiate those from fraud anomalies. The simplicity of this method makes it easy to explain and share, but there are opportunities to enhance it even further...
-
-```{r,echo=FALSE,fig.height = 4,fig.width=6}
+.center[
+```{r,echo=FALSE, out.width = "500px"}
 knitr::include_graphics("plotly.png")
 ```
+]
 ---
 # Future Work
 * Find the clusters of fraud. We were able to iterate time series decomposition and anomaly detection across several time series within the aggregate, but what are the specific profiles of applications that cause fraud events? Are there other statistical methods and tools that would could combine with this method to find what clusters of channels fraudulent applications are coming through?
@@ -534,4 +565,12 @@ knitr::include_graphics("plotly.png")
 * Another big opportunity we've started exploring is the link between fraudulent applications and marketing. How can we compound our savings, and optimize our marketing budget by looking at whether increases in customer growth from marketing campaigns are actually bad actors causing losses?
 ---
 # References
+```{r, load_refs, echo=FALSE}
+library(RefManageR)
+bib <- ReadBib("references.bib", check = FALSE)
+```
+
+```{r, print_refs, results='asis', echo=FALSE, warning=FALSE, message=FALSE}
+print(bib)
+```
 
