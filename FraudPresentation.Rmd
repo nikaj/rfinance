@@ -56,29 +56,23 @@ suppress-bibliography: false
 ```
 
 # Background and Motivation
+E-Commerce fraud has been growing since the pandemic, with a reported **$41 Billion in losses for 2022** @Baluch2023Feb.
 
-.large[**Goal:** Detect Fraud in Financial Services Applications over time to detect and prevent fraud before a customer even transacts and losses are incurred]
+.med[**Goal:** Detect Fraud in Financial Services Applications over time to detect and prevent fraud before a customer even transacts and losses are incurred]
 
-.pull-left-big[
-.med[.left[
-- E-Commerce fraud has been growing since the pandemic, with a reported **$41 Billion in losses for 2022** @Baluch2023Feb.
-
-- What statistical methods can differentiate fraud events from other time series anomalies and behaviors?
-]]]
-
-.pull-right-small[
-```{r vizmeme,fig.height = 2, out.width="95%", echo=FALSE}
+.center[
+```{r vizmeme, out.width="45%", echo=FALSE}
 knitr::include_graphics("meme.png")
 ```
 ]
 ---
-# Challenges
+# Fraud Detection Challenges
 .large[
 - Typical fraud attack: bots create several applications with the intent to defraud the company or buyer
 
 - Application volume can be an early indicator of potential fraud attacks, but how do we know if shifts in volume are due to fraud, normal growth, marketing trends, or seasonality?
 
-- What if fraudsters are targeting a specific product, industry, state, etc, and we don't see an obvious spike in total application volume?
+- Where is the fraud coming from?
 ]
 ---
 # The Data 
@@ -310,8 +304,9 @@ prod_c <- fcn_anom(dat3)
 ```
 ---
 # Visualizing Outliers
+
 .center[
-```{r anomp,fig.width = 11, fig.height = 6.8,echo=FALSE,message = FALSE,warning = FALSE}
+```{r ff, fig.width = 9, fig.height = 6.8, echo=FALSE, message = FALSE,warning = FALSE}
 figp1 <- plot_ly(df_anom, type = 'scatter', mode = "markers+lines", colors = c(alpha("grey",.01),"red2")) %>%
     
     add_trace(x = ~dt, y = ~observed, mode = "markers", color = ~anomaly,alpha = .7,
@@ -420,6 +415,7 @@ fig <- fig %>%layout(annotations = annotations)
 fig
 ```
 ]
+
 ---
 ```{r groupingfcns,echo=FALSE,message = FALSE,include = FALSE}
 ## Anomaly Detection
