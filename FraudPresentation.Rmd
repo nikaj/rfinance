@@ -159,7 +159,7 @@ Decompose time series and identify outliers on remainder. Iterate over individua
   + STL: Seasonal Decomposition of Time Series by Loess
   + anomalize package <br><br>
 2. Identify Outliers in the Remainder
-  + GESD: Generalized Extreme Student Deviate Test <br>
+  + GESD: Generalized Extreme Studentized Deviate Test <br>
 
 .center[
 ```{r vizmet,fig.height = 4, out.width="90%", echo=FALSE}
