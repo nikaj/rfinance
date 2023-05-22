@@ -1,6 +1,7 @@
 ---
-title: "<span style = 'font-size: 110%;'>Finding Fraud Events using Time Series Anomaly Detection Methods<br>"
-author: "Weronika (Nika) Jusczak<br><br><span style = 'font-size: 82%;'>Staff Fraud & Risk Analyst at Intuit (formerly)<br>Principal AV Analyst at Motional (currently)"
+title: "<span style = 'font-size: 110%;'>**Finding Fraud Events using Time Series Anomaly Detection Methods**<br>"
+subtitle: "<span style = 'font-size: 85%;'>R/Finance Conference | UIC | 5/20/2023"
+author: "Weronika (Nika) Juszczak<br><span style = 'font-size: 80%;'>Staff Fraud & Risk Analyst at Intuit (formerly)<br>Principal AV Analyst at Motional (currently)"
 output:
   xaringan::moon_reader:
     lib_dir: libs
@@ -621,6 +622,8 @@ knitr::include_graphics("plotly.png")
 * Find the clusters of fraud: we were able to iterate time series decomposition and anomaly detection across several time series within the aggregate, but what are the specific profiles of applications that cause fraud events?
 
 * Link between fraudulent applications and marketing: how can we compound our savings, and optimize our marketing budget by looking at whether increases in customer growth from marketing campaigns are actually bad actors causing losses?
+
+* **Other Applications**: time series anomaly detection is a simple method with applications beyond fraud...
 ---
 # References
 ```{r, load_refs, echo=FALSE}
